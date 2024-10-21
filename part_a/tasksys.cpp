@@ -65,11 +65,13 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
         if (nextTask <= lastTask[index]) {
             runnable->runTask(nextTask, num_total_tasks);
         } else {  // if no more tasks left, try stealing 
-            std::lock_guard<std::mutex> runningThreadsLock(runningThreadsMutex);
-            runningThreads.erase(index);
-            if (runningThreads.empty()) { // nothing to steal from
-                running = false;
-                break;
+            {
+                std::lock_guard<std::mutex> runningThreadsLock(runningThreadsMutex);
+                runningThreads.erase(index);
+                if (runningThreads.empty()) { // nothing to steal from
+                    running = false;
+                    break;
+                }
             }
 
             bool found = false;
@@ -79,7 +81,10 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                 { // scope setting for lock guard
                     std::lock_guard<std::mutex> runningThreadsLock(runningThreadsMutex);
                     std::vector<int> runningThreadsVec = std::vector<int>(runningThreads.begin(), runningThreads.end());
-                    victimThreadIndex = runningThreadsVec[std::rand() % runningThreadsVec.size()];
+
+                    std::mt19937 randGen(std::random_device{}()); // rand() is not thread safe
+                    std::uniform_int_distribution<> distr(0, runningThreadsVec.size() - 1);
+                    victimThreadIndex = runningThreadsVec[distr(randGen)];
                 }
 
                 // try stealing from victim thread
