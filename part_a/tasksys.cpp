@@ -1,6 +1,7 @@
 #include "tasksys.h"
 
-const int MAX_EXECUTION_CONTEXTS = 8;
+const int MAX_EXECUTION_CONTEXTS = 8; // machine unique
+const int TASK_BATCH = 5;             // each thread claims 4 tasks to run at once (empirically seems to get good results)
 
 IRunnable::~IRunnable() {}
 
@@ -60,22 +61,26 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
     bool running = true;
     while (running) {
         // get task from own queue
-        int nextTask = curTask[index].fetch_add(1);
-        
-        if (nextTask <= lastTask[index]) {
-            runnable->runTask(nextTask, num_total_tasks);
+        int startTask = curTask[index].fetch_add(TASK_BATCH);
+        int endTask = std::min(startTask + TASK_BATCH, lastTask[index] + 1);
+
+        if (startTask <= lastTask[index]) {
+            // execute multiple tasks consecutively per thread (instead of just 1)
+            for(int task = startTask; task < endTask; ++task) {
+                runnable->runTask(task, num_total_tasks);
+            }
         } else {  // if no more tasks left, try stealing 
             {
                 std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
-                potentialVictims.erase( std::remove(potentialVictims.begin(), potentialVictims.end(), index), potentialVictims.end() );
+                potentialVictims.erase(std::remove(potentialVictims.begin(), potentialVictims.end(), index), potentialVictims.end());
             }
 
             bool found = false;
             int victimThreadIndex;
+            std::mt19937 randGen(std::random_device{}()); // rand() is not thread safe
+            std::uniform_int_distribution<> distr;
             while (!found) {
                 // pick a victim thread
-                std::mt19937 randGen(std::random_device{}()); // rand() is not thread safe
-
                 {   // scope setting for lock guard
                     std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
                     if (potentialVictims.empty()) { // nothing to steal from
@@ -84,18 +89,22 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                     }
 
                     std::vector<int> potentialVictimsVec = std::vector<int>(potentialVictims.begin(), potentialVictims.end());
-                    std::uniform_int_distribution<> distr(0, potentialVictimsVec.size() - 1);
+                    distr = std::uniform_int_distribution<>(0, potentialVictimsVec.size() - 1);
                     victimThreadIndex = potentialVictimsVec[distr(randGen)];
                 }
 
-                // try stealing from victim thread
-                int victimThreadNextTask = curTask[victimThreadIndex].fetch_add(1);
-                if (victimThreadNextTask <= lastTask[victimThreadIndex]) {
-                    runnable->runTask(victimThreadNextTask, num_total_tasks);
+                // try stealing a batch from victim thread
+                int victimStartTask = curTask[victimThreadIndex].fetch_add(TASK_BATCH);
+                int victimEndTask = std::min(victimStartTask + TASK_BATCH, lastTask[victimThreadIndex] + 1);
+                
+                if (victimStartTask <= lastTask[victimThreadIndex]) {
+                    for(int i = victimStartTask; i < victimEndTask; i++) {
+                        runnable->runTask(i, num_total_tasks);
+                    }
                     found = true;
                 } else {  // no more tasks in victim thread's queue ==> update state & pick another victim
                     std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
-                    potentialVictims.erase( std::remove(potentialVictims.begin(), potentialVictims.end(), victimThreadIndex), potentialVictims.end() );
+                    potentialVictims.erase(std::remove(potentialVictims.begin(), potentialVictims.end(), victimThreadIndex), potentialVictims.end() );
                 }
             }
         }       
