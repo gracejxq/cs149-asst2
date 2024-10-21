@@ -1,7 +1,4 @@
 #include "tasksys.h"
-#include <thread>
-#include <random>
-#include <unordered_set>
 
 const int MAX_EXECUTION_CONTEXTS = 8;
 
@@ -81,7 +78,7 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                 // pick a victim thread
                 { // scope setting for lock guard
                     std::lock_guard<std::mutex> runningThreadsLock(runningThreadsMutex);
-                    std::vector<int> runningThreadsVec = std::vector(runningThreads.begin(), runningThreads.end());
+                    std::vector<int> runningThreadsVec = std::vector<int>(runningThreads.begin(), runningThreads.end());
                     victimThreadIndex = runningThreadsVec[std::rand() % runningThreadsVec.size()];
                 }
 
@@ -111,10 +108,9 @@ void TaskSystemParallelSpawn::runThreadSingleTask(IRunnable* runnable, int task_
 void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     // run everything with static assignment if possible:
     if (num_total_tasks <= threads_available) {
-        std::vector<std::thread> threads;
+        std::vector<std::thread> threads(num_total_tasks);
         for (int i = 0; i < num_total_tasks; i++) {
-            std::thread curThread = std::thread(&TaskSystemParallelSpawn::runThreadSingleTask, this, runnable, i, num_total_tasks);
-            threads.push_back(curThread);
+            threads[i] = std::thread(&TaskSystemParallelSpawn::runThreadSingleTask, this, runnable, i, num_total_tasks);
         }
 
         for (std::thread &t : threads) {
@@ -144,11 +140,10 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     }
 
     // launch threads
-    std::vector<std::thread> threads;
+    std::vector<std::thread> threads(threads_available);
     for (int i = 0; i < threads_available; i++) {
-        std::thread curThread = std::thread(&TaskSystemParallelSpawn::runThread, this, runnable, std::ref(num_total_tasks), 
+        threads[i] = std::thread(&TaskSystemParallelSpawn::runThread, this, runnable, num_total_tasks, i, 
                                 std::ref(lastTask), std::ref(curTask), std::ref(runningThreads), std::ref(runningThreadsMutex));
-        threads.push_back(curThread);
     }
 
     // join threads

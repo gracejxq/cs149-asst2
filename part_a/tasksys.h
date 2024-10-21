@@ -3,7 +3,13 @@
 
 #include "itasksys.h"
 
-#include <deque>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <random>
+#include <vector>
+#include <unordered_set>
+#include <queue>
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -30,7 +36,7 @@ class TaskSystemSerial: public ITaskSystem {
 class TaskSystemParallelSpawn: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
-        void runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, std::vector<std::atomic<int>>& curTask, 
+        void runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, std::vector<std::atomic<int>>& curTask,
                                 std::unordered_set<int>& runningThreads, std::mutex& runningThreadsMutex); // helper called by run()
         void runThreadSingleTask(IRunnable* runnable, int task_id, int num_total_tasks); // helper called by run()
     public:
@@ -53,7 +59,7 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
         bool threads_made; // tracks if threads have alr been spawned by a prev call to run()
-        std::deque<int> run_queue; // tracks future bulk task launches
+        std::queue<int> run_queue; // tracks future bulk task launches
     public:
         TaskSystemParallelThreadPoolSpinning(int num_threads);
         ~TaskSystemParallelThreadPoolSpinning();
@@ -74,7 +80,7 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
         bool threads_made; // tracks if threads have alr been spawned by a prev call to run()
-        std::deque<int> run_queue; // tracks future bulk task launches
+        std::queue<int> run_queue; // tracks future bulk task launches
     public:
         TaskSystemParallelThreadPoolSleeping(int num_threads);
         ~TaskSystemParallelThreadPoolSleeping();
