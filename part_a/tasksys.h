@@ -7,6 +7,7 @@
 #include <atomic>
 #include <mutex>
 #include <random>
+#include <algorithm>
 #include <vector>
 #include <queue>
 
