@@ -8,7 +8,6 @@
 #include <mutex>
 #include <random>
 #include <vector>
-#include <unordered_set>
 #include <queue>
 
 /*
@@ -37,7 +36,7 @@ class TaskSystemParallelSpawn: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
         void runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, std::vector<std::atomic<int>>& curTask,
-                                std::unordered_set<int>& runningThreads, std::mutex& runningThreadsMutex); // helper called by run()
+                                std::vector<int>& runningThreads, std::mutex& runningThreadsMutex); // helper called by run()
         void runThreadSingleTask(IRunnable* runnable, int task_id, int num_total_tasks); // helper called by run()
     public:
         TaskSystemParallelSpawn(int num_threads);
