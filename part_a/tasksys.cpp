@@ -48,7 +48,7 @@ const char* TaskSystemParallelSpawn::name() {
 }
 
 TaskSystemParallelSpawn::TaskSystemParallelSpawn(int num_threads): ITaskSystem(num_threads) {
-    threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS) - 1;
+    threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS);
 }
 
 TaskSystemParallelSpawn::~TaskSystemParallelSpawn() {}
