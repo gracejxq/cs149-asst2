@@ -126,36 +126,25 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
         int myTask;
         while (runBatch) {
             myTask = curTask.fetch_add(1); // atomic save, add, and return
-            
-            cout_mutex.lock();
-            // std::cout << "curr thread: "<< thread_num << std::endl;
-            // std::cout << myTask << std::endl;
-            fprintf(stderr, "hello");
-            std::cout << "thread number" << thread_num;
-            // std::cout << "num total tasks" <<  numTotalTasks.load();
-            cout_mutex.unlock();
-            
             if (myTask >= numTotalTasks) {
                 runBatch = false;
-                // cout_mutex.lock();
-                // std::cout << "is batch running? "<< runBatch << std::endl;
-                // fprintf(stderr, "hello");
-                // cout_mutex.unlock();
                 break;
             }
             currRunnable->runTask(myTask, numTotalTasks);
+            finishedTasks++;
         }    
     }
 }
 
 void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_total_tasks) {
-    // cout_mutex.lock();
-    // std::cout << "num total" << num_total_tasks << std::endl;
-    // cout_mutex.unlock();
     numTotalTasks = num_total_tasks;
     curTask = 0;
+    finishedTasks = 0;
     currRunnable = runnable;
     runBatch = true;
+    while (finishedTasks < numTotalTasks) {
+        continue;
+    }
 }
 
 TaskID TaskSystemParallelThreadPoolSpinning::runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
