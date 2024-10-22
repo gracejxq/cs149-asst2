@@ -60,7 +60,7 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, const int num_total
         if (myTask >= num_total_tasks) {
             break;
         }
-        runnable.runTask(myTask, num_total_tasks);
+        runnable->runTask(myTask, num_total_tasks);
     }
 }
 
