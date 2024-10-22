@@ -11,8 +11,9 @@
 #include <vector>
 #include <queue>
 
-const int MAX_EXECUTION_CONTEXTS = 8; // machine unique
-const int TASK_BATCH = 30;             // each thread claims 10 tasks to run at once (empirically seems to get good results)
+// const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
+const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
+const int TASK_BATCH = 10;             // each thread claims 10 tasks to run at once (empirically seems to get good results)
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
