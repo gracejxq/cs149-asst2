@@ -54,7 +54,7 @@ TaskSystemParallelSpawn::TaskSystemParallelSpawn(int num_threads): ITaskSystem(n
 TaskSystemParallelSpawn::~TaskSystemParallelSpawn() {}
 
 void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, 
-                std::vector<std::atomic<int>>& curTask, std::bitset<MAX_EXECUTION_CONTEXTS>& potentialVictims, std::mutex& potentialVictimMutex) {
+                std::vector<std::atomic<int>>& curTask, std::vector<std::atomic<bool>>& potentialVictims, std::mutex& potentialVictimMutex) {
     bool running = true;
     while (running) {
         // get task from own queue
@@ -67,10 +67,7 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                 runnable->runTask(task, num_total_tasks);
             }
         } else { // if no more tasks left, try stealing 
-            {
-                std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
-                potentialVictims.reset(index);
-            }
+            potentialVictims[index] = false;
 
             bool victimFound = false;
             int victimThreadIndex;
@@ -81,25 +78,19 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                 // pick a victim thread
                 {   // scope setting for lock guard
                     std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
-                    int numPotentialVictims = potentialVictims.count();
-                    if (numPotentialVictims == 0) { // nothing to steal from
+                    std::vector<int> availableVictims;
+                    for (int i = 0; i < threads_available; ++i) {
+                        if (i != index && potentialVictims[i] == true) {
+                            availableVictims.push_back(i);
+                        }
+                    }
+                    if (availableVictims.empty()) { // nothing to steal from
                         running = false;
                         break;
                     }
 
-                    distr = std::uniform_int_distribution<>(0, numPotentialVictims - 1);
-                    int chosenVictim = distr(randGen);
-
-                    int curVictim = 0;
-                    for (int i = 0; i < MAX_EXECUTION_CONTEXTS; i++) {
-                        if (potentialVictims[i]) {
-                            if (curVictim == chosenVictim) {
-                                victimThreadIndex = i;
-                                break;
-                            }
-                            curVictim++;
-                        }
-                    }
+                    distr = std::uniform_int_distribution<>(0, availableVictims.size() - 1);
+                    victimThreadIndex = availableVictims[distr(randGen)];
                 }
 
                 // try stealing a batch from victim thread
@@ -112,8 +103,7 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                     }
                     victimFound = true;
                 } else { // no more tasks in victim thread's queue ==> update state & pick another victim
-                    std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
-                    potentialVictims.reset(victimThreadIndex);
+                    potentialVictims[victimThreadIndex] = false;
                 }
             }
         }       
@@ -141,7 +131,7 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     // otherwise, run everything with dynamic assignment:
     std::vector<int> lastTask(threads_available); // read only
     std::vector<std::atomic<int>> curTask(threads_available);
-    std::bitset<MAX_EXECUTION_CONTEXTS> potentialVictims; // bitsets are more optimized than vectors of bools
+    std::vector<std::atomic<bool>> potentialVictims(threads_available);
     std::mutex potentialVictimsMutex;
 
     int tasksPerThread = num_total_tasks / threads_available;
@@ -155,7 +145,7 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
         lastTask[i] = curTaskID + numTasks - 1;
         curTaskID = lastTask[i] + 1;
 
-        potentialVictims.set(i);
+        potentialVictims[i] = true;
     }
 
     // launch threads

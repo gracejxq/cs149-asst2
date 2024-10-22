@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <vector>
 #include <queue>
-#include <bitset>
 
 const int MAX_EXECUTION_CONTEXTS = 8; // machine unique
 const int TASK_BATCH = 30;             // each thread claims 10 tasks to run at once (empirically seems to get good results)
@@ -41,7 +40,7 @@ class TaskSystemParallelSpawn: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
         void runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, std::vector<std::atomic<int>>& curTask,
-                                std::bitset<MAX_EXECUTION_CONTEXTS>& potentialVictims, std::mutex& potentialVictimMutex); // helper called by run()
+                                std::vector<std::atomic<bool>>& potentialVictims, std::mutex& potentialVictimMutex); // helper called by run()
         void runThreadSingleTask(IRunnable* runnable, int task_id, int num_total_tasks); // helper called by run()
     public:
         TaskSystemParallelSpawn(int num_threads);
