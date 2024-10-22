@@ -66,7 +66,7 @@ void TaskSystemParallelSpawn::runThread(IRunnable& runnable, const int& num_tota
 
 void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     std::vector<std::thread> threads(threads_available);
-    std::atomic<int> curTask = std::atomic<int>(0);
+    std::atomic<int> curTask(0);
 
     // launch threads
     for (int i = 0; i < threads_available; i++) {
