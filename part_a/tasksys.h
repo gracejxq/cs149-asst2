@@ -40,7 +40,7 @@ class TaskSystemSerial: public ITaskSystem {
 class TaskSystemParallelSpawn: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
-        void runThread(IRunnable& runnable, const int& num_total_tasks, std::atomic<int>& curTask); // helper called by run()
+        void runThread(IRunnable* runnable, const int num_total_tasks, std::atomic<int>& curTask); // helper called by run()
     public:
         TaskSystemParallelSpawn(int num_threads);
         ~TaskSystemParallelSpawn();

@@ -53,7 +53,7 @@ TaskSystemParallelSpawn::TaskSystemParallelSpawn(int num_threads): ITaskSystem(n
 
 TaskSystemParallelSpawn::~TaskSystemParallelSpawn() {}
 
-void TaskSystemParallelSpawn::runThread(IRunnable& runnable, const int& num_total_tasks, std::atomic<int>& curTask) {
+void TaskSystemParallelSpawn::runThread(IRunnable* runnable, const int num_total_tasks, std::atomic<int>& curTask) {
     int myTask;
     while (true) {
         myTask = curTask.fetch_add(1); // atomic save, add, and return
