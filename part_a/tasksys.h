@@ -40,7 +40,7 @@ class TaskSystemSerial: public ITaskSystem {
 class TaskSystemParallelSpawn: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
-        void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, 
+        void runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, 
                 std::vector<std::atomic<int>>& curTask, std::vector<std::atomic<bool>>& potentialVictims, std::mutex& potentialVictimMutex); // helper called by run()
         void runThreadSingleTask(IRunnable* runnable, int task_id, int num_total_tasks); // helper called by run()
     public:
