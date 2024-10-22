@@ -48,7 +48,7 @@ const char* TaskSystemParallelSpawn::name() {
 }
 
 TaskSystemParallelSpawn::TaskSystemParallelSpawn(int num_threads): ITaskSystem(num_threads) {
-    threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS);
+    threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS) - 1;
 }
 
 TaskSystemParallelSpawn::~TaskSystemParallelSpawn() {}
@@ -115,6 +115,14 @@ void TaskSystemParallelSpawn::runThreadSingleTask(IRunnable* runnable, int task_
 }
 
 void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
+    // if there's only 1 thread allowed (main thread), run sequentially:
+    if (threads_available == 0) {
+        for (int i = 0; i < num_total_tasks; i++) {
+            runnable->runTask(i, num_total_tasks);
+        }
+        return;
+    }
+
     // run everything with static assignment if possible:
     if (num_total_tasks <= threads_available) {
         std::vector<std::thread> threads(num_total_tasks);
