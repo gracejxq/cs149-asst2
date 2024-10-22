@@ -116,7 +116,7 @@ void TaskSystemParallelSpawn::runThreadSingleTask(IRunnable* runnable, int task_
 
 void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     // if there's only 1 thread allowed (main thread), run sequentially:
-    if (threads_available == 0) {
+    if (threads_available == 1) {
         for (int i = 0; i < num_total_tasks; i++) {
             runnable->runTask(i, num_total_tasks);
         }
@@ -157,11 +157,14 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     }
 
     // launch threads
-    std::vector<std::thread> threads(threads_available);
-    for (int i = 0; i < threads_available; i++) {
-        threads[i] = std::thread(&TaskSystemParallelSpawn::runThread, this, runnable, num_total_tasks, i, 
-                                std::ref(lastTask), std::ref(curTask), std::ref(potentialVictims), std::ref(potentialVictimsMutex));
+    std::vector<std::thread> threads(threads_available - 1);
+    for (int i = 1; i < threads_available; i++) {
+        threads[i - 1] = std::thread(&TaskSystemParallelSpawn::runThread, this, runnable, num_total_tasks, i, 
+                        std::ref(lastTask), std::ref(curTask), std::ref(potentialVictims), std::ref(potentialVictimsMutex));
     }
+
+    runThread(runnable, num_total_tasks, 0, std::ref(lastTask), std::ref(curTask), 
+                        std::ref(potentialVictims), std::ref(potentialVictimsMutex));
 
     // join threads
     for (std::thread &t : threads) {
