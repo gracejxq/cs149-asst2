@@ -69,17 +69,18 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
             for(int task = startTask; task < endTask; ++task) {
                 runnable->runTask(task, num_total_tasks);
             }
-        } else {  // if no more tasks left, try stealing 
+        } else { // if no more tasks left, try stealing 
             {
                 std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
                 potentialVictims.erase(std::remove(potentialVictims.begin(), potentialVictims.end(), index), potentialVictims.end());
             }
 
-            bool found = false;
+            bool victimFound = false;
             int victimThreadIndex;
             std::mt19937 randGen(std::random_device{}()); // rand() is not thread safe
             std::uniform_int_distribution<> distr;
-            while (!found) {
+            
+            while (!victimFound) {
                 // pick a victim thread
                 {   // scope setting for lock guard
                     std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
@@ -101,7 +102,7 @@ void TaskSystemParallelSpawn::runThread(IRunnable* runnable, int num_total_tasks
                     for(int i = victimStartTask; i < victimEndTask; i++) {
                         runnable->runTask(i, num_total_tasks);
                     }
-                    found = true;
+                    victimFound = true;
                 } else {  // no more tasks in victim thread's queue ==> update state & pick another victim
                     std::lock_guard<std::mutex> runningThreadsLock(potentialVictimMutex);
                     potentialVictims.erase(std::remove(potentialVictims.begin(), potentialVictims.end(), victimThreadIndex), potentialVictims.end() );
@@ -132,8 +133,8 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     // otherwise, run everything with dynamic assignment:
     std::vector<int> lastTask(threads_available); // read only
     std::vector<std::atomic<int>> curTask(threads_available);
-    std::vector<int> runningThreads;
-    std::mutex runningThreadsMutex;
+    std::vector<int> potentialVictims;
+    std::mutex potentialVictimsMutex;
 
     int tasksPerThread = num_total_tasks / threads_available;
     int extraTasks = num_total_tasks % threads_available;
@@ -146,14 +147,14 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
         lastTask[i] = curTaskID + numTasks - 1;
         curTaskID = lastTask[i] + 1;
 
-        runningThreads.push_back(i);
+        potentialVictims.push_back(i);
     }
 
     // launch threads
     std::vector<std::thread> threads(threads_available);
     for (int i = 0; i < threads_available; i++) {
         threads[i] = std::thread(&TaskSystemParallelSpawn::runThread, this, runnable, num_total_tasks, i, 
-                                std::ref(lastTask), std::ref(curTask), std::ref(runningThreads), std::ref(runningThreadsMutex));
+                                std::ref(lastTask), std::ref(curTask), std::ref(potentialVictims), std::ref(potentialVictimsMutex));
     }
 
     // join threads
