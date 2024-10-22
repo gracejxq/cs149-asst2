@@ -11,6 +11,10 @@
 #include <vector>
 #include <queue>
 
+
+const int MAX_EXECUTION_CONTEXTS = 8; // machine unique
+const int TASK_BATCH = 10;             // each thread claims 10 tasks to run at once (empirically seems to get good results)
+
 /*
  * TaskSystemSerial: This class is the student's implementation of a
  * serial task execution engine.  See definition of ITaskSystem in
@@ -37,7 +41,7 @@ class TaskSystemParallelSpawn: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
         void runThread(IRunnable* runnable, int num_total_tasks, int index, std::vector<int>& lastTask, std::vector<std::atomic<int>>& curTask,
-                                std::vector<int>& runningThreads, std::mutex& runningThreadsMutex); // helper called by run()
+                                std::bitset<MAX_EXECUTION_CONTEXTS>& potentialVictims, std::mutex& potentialVictimMutex); // helper called by run()
         void runThreadSingleTask(IRunnable* runnable, int task_id, int num_total_tasks); // helper called by run()
     public:
         TaskSystemParallelSpawn(int num_threads);
