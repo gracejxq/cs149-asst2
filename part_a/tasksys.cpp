@@ -128,10 +128,10 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
             myTask = curTask.fetch_add(1); // atomic save, add, and return
             if (myTask >= numTotalTasks) {
                 runBatch = false;
+                doneThreads++;
                 break;
             }
             currRunnable->runTask(myTask, numTotalTasks);
-            finishedTasks++;
         }    
     }
 }
@@ -139,10 +139,10 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
 void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_total_tasks) {
     numTotalTasks = num_total_tasks;
     curTask = 0;
-    finishedTasks = 0;
+    doneThreads = 0;
     currRunnable = runnable;
     runBatch = true;
-    while (finishedTasks < numTotalTasks) {
+    while (doneThreads < threads_available) {
         continue;
     }
 }

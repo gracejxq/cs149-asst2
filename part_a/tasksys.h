@@ -64,7 +64,7 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         std::atomic<int> curTask;
         std::atomic<bool> endThreadPool;
         std::atomic<bool> runBatch;
-        std::atomic<int> finishedTasks;
+        std::atomic<int> doneThreads;
         int numTotalTasks;
         IRunnable* currRunnable;
         void runThread(int thread_num); // helper called by run()
