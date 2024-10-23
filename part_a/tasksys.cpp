@@ -203,22 +203,25 @@ void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
             taskAvailable.wait(lock);  
         }
 
-        if (endThreadPool) { // kill thread if destructor
+        bool killThread = endThreadPool;
+        lock.unlock();
+
+        if (killThread) { // kill thread if destructor
             break; 
         } 
 
         int myTask = curTask.fetch_add(1);
         if (myTask < numTotalTasks) { // otherwise run next task
             
-            lock.unlock();
-
             currRunnable->runTask(myTask, numTotalTasks);
+
+            doneTasks.fetch_add(1);
 
             lock.lock();
 
             // wake main thread to return from run after last task
-            if (++doneTasks == numTotalTasks) {
-                tasksDone.notify_one();
+            if (doneTasks == numTotalTasks) {
+                tasksDone.notify_all();
             }
         }
     }
