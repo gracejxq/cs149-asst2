@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <vector>
 #include <queue>
+#include <condition_variable>
 
 // const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
 const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
