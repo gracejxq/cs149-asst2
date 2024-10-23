@@ -206,21 +206,17 @@ void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
         bool killThread = endThreadPool;
         lock.unlock();
 
-        if (killThread) { // kill thread if destructor
+        if (killThread) { // kill thread if destructor called
             break; 
         } 
 
         int myTask = curTask.fetch_add(1);
-        if (myTask < numTotalTasks) { // otherwise run next task
-            
+        if (myTask < numTotalTasks) { // otherwise run next task if possible
             currRunnable->runTask(myTask, numTotalTasks);
-
             doneTasks.fetch_add(1);
 
             lock.lock();
-
-            // wake main thread to return from run after last task
-            if (doneTasks == numTotalTasks) {
+            if (doneTasks == numTotalTasks) { // wake main thread after last task
                 tasksDone.notify_all();
             }
         }
@@ -228,12 +224,13 @@ void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
 }
 
 void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_total_tasks) {
-    // make this atomic in case of spurious worker thread wakeups
-    // std::unique_lock<std::mutex> lock(mutex_);
-    currRunnable = runnable;
-    curTask = 0;
-    doneTasks = 0;
-    numTotalTasks = num_total_tasks;
+    {  // make this atomic in case of spurious worker thread wakeups
+        std::unique_lock<std::mutex> lock(mutex_);
+        currRunnable = runnable;
+        curTask = 0;
+        doneTasks = 0;
+        numTotalTasks = num_total_tasks;
+    }
 
     taskAvailable.notify_all();  // wake all threads to start running tasks
 
