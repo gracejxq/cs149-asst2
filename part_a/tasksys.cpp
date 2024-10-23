@@ -118,13 +118,12 @@ TaskSystemParallelThreadPoolSpinning::~TaskSystemParallelThreadPoolSpinning() {
 
 void TaskSystemParallelThreadPoolSpinning::runThread() {
     while (!endThreadPool) {
-        // std::unique_lock<std::mutex> runningThreadsLock(mutex_);
-        int myTask = curTask.fetch_add(1);
-
+        std::unique_lock<std::mutex> runningThreadsLock(mutex_);
         if (curTask < numTotalTasks) {
-            // runningThreadsLock.unlock();
+            int myTask = curTask.fetch_add(1);
+            runningThreadsLock.unlock();
             currRunnable->runTask(myTask, numTotalTasks);
-            doneTasks.fetch_add(1);
+            doneTasks++;
         }
     }
 }
