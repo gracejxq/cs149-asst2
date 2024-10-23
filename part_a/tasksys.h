@@ -60,14 +60,12 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
         std::vector<std::thread> threads;
-        std::atomic<int> curTask;
-        std::atomic<bool> endThreadPool;
-        // std::atomic<bool> runBatch;
-        std::atomic<int> doneTasks;
+        std::atomic<int> curTask{0};
+        std::atomic<bool> endThreadPool{false};
+        std::atomic<int> doneTasks{0};
         std::mutex mutex_;
-        std::atomic<int> numTotalTasks;
+        std::atomic<int> numTotalTasks{0};
         IRunnable* currRunnable;
-        // std::atomic<IRunnable *> currRunnable;
         void runThread(int thread_num); // helper called by run()
     public:
         TaskSystemParallelThreadPoolSpinning(int num_threads);
@@ -77,7 +75,7 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
-};
+};  
 
 /*
  * TaskSystemParallelThreadPoolSleeping: This class is the student's

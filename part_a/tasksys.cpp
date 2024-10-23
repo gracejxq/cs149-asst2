@@ -103,13 +103,9 @@ const char* TaskSystemParallelThreadPoolSpinning::name() {
 
 TaskSystemParallelThreadPoolSpinning::TaskSystemParallelThreadPoolSpinning(int num_threads): ITaskSystem(num_threads) {
     endThreadPool = false;
-    numTotalTasks.store(0);
-    curTask.store(0);
-    doneTasks.store(0);
-    // runBatch = false;
     threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS);
     for (int i = 0; i < threads_available; i++) {
-        threads.push_back(std::thread(&TaskSystemParallelThreadPoolSpinning::runThread, this, i));
+        threads.emplace_back(std::thread(&TaskSystemParallelThreadPoolSpinning::runThread, this, i));
     }
 }
 
@@ -125,24 +121,21 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
         std::unique_lock<std::mutex> runningThreadsLock(mutex_);
         if (curTask < numTotalTasks) {
             int myTask = curTask.fetch_add(1);
-            std::cout << "THREAD: " << thread_num << " " << doneTasks << std::endl;
             runningThreadsLock.unlock();
             currRunnable->runTask(myTask, numTotalTasks);
             doneTasks++;
-            // mutex_.unlock();
         }
     }
 }
 
 void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_total_tasks) {
-    numTotalTasks = num_total_tasks;
+    currRunnable = runnable;
     curTask = 0;
     doneTasks = 0;
-    currRunnable = runnable;
+    numTotalTasks = num_total_tasks;
     while (doneTasks < numTotalTasks) {
         continue;
     }
-    // fprintf(stderr, "Urk!\n");
 }
 
 TaskID TaskSystemParallelThreadPoolSpinning::runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
