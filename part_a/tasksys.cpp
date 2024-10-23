@@ -124,7 +124,9 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
     while (!endThreadPool) {
         int myTask;
         while (runBatch) {
-            myTask = curTask.fetch_add(1); // atomic save, add, and return
+            // myTask = curTask.fetch_add(1); // atomic save, add, and return
+            myTask = curTask++;
+            // curTask++;
             if (myTask >= numTotalTasks) {
                 runBatch = false;
                 // doneThreads++;
