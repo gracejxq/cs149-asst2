@@ -13,7 +13,6 @@
 
 // const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
 const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
-const int TASK_BATCH = 10;             // each thread claims 10 tasks to run at once (empirically seems to get good results)
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -64,7 +63,7 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         std::atomic<int> curTask;
         std::atomic<bool> endThreadPool;
         std::atomic<bool> runBatch;
-        std::atomic<int> doneThreads;
+        std::atomic<int> doneTasks;
         int numTotalTasks;
         IRunnable* currRunnable;
         void runThread(int thread_num); // helper called by run()

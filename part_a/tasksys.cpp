@@ -101,8 +101,6 @@ const char* TaskSystemParallelThreadPoolSpinning::name() {
     return "Parallel + Thread Pool + Spin";
 }
 
-std::mutex cout_mutex; // TODO: remove,  Mutex to synchronize access to std::cout
-
 TaskSystemParallelThreadPoolSpinning::TaskSystemParallelThreadPoolSpinning(int num_threads): ITaskSystem(num_threads) {
     endThreadPool = false;
     runBatch = false;
@@ -128,10 +126,11 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
             myTask = curTask.fetch_add(1); // atomic save, add, and return
             if (myTask >= numTotalTasks) {
                 runBatch = false;
-                doneThreads++;
+                // doneThreads++;
                 break;
             }
             currRunnable->runTask(myTask, numTotalTasks);
+            doneTasks++;
         }    
     }
 }
@@ -139,10 +138,10 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
 void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_total_tasks) {
     numTotalTasks = num_total_tasks;
     curTask = 0;
-    doneThreads = 0;
+    doneTasks = 0;
     currRunnable = runnable;
     runBatch = true;
-    while (doneThreads < threads_available) {
+    while (doneTasks < numTotalTasks) {
         continue;
     }
 }
