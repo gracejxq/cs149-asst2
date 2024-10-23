@@ -11,8 +11,8 @@
 #include <vector>
 #include <queue>
 
-const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
-// const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
+// const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
+const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
