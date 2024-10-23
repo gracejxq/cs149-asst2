@@ -113,9 +113,10 @@ TaskSystemParallelThreadPoolSpinning::TaskSystemParallelThreadPoolSpinning(int n
 TaskSystemParallelThreadPoolSpinning::~TaskSystemParallelThreadPoolSpinning() {
     endThreadPool = true;
     for (std::thread &t : threads) {
-        if (t.joinable()) {
-            t.join();
-        }
+        // if (t.joinable()) {
+        //     t.join();
+        // }
+        t.join();
     }
 }
 
