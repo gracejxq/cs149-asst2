@@ -11,8 +11,8 @@
 #include <vector>
 #include <queue>
 
-// const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
-const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
+const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
+// const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -62,10 +62,12 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         std::vector<std::thread> threads;
         std::atomic<int> curTask;
         std::atomic<bool> endThreadPool;
-        std::atomic<bool> runBatch;
+        // std::atomic<bool> runBatch;
         std::atomic<int> doneTasks;
-        int numTotalTasks;
+        std::mutex mutex_;
+        std::atomic<int> numTotalTasks;
         IRunnable* currRunnable;
+        // std::atomic<IRunnable *> currRunnable;
         void runThread(int thread_num); // helper called by run()
     public:
         TaskSystemParallelThreadPoolSpinning(int num_threads);
