@@ -209,6 +209,9 @@ void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
 
         int myTask = curTask.fetch_add(1);
         if (myTask < numTotalTasks) { // otherwise run next task
+            
+            lock.unlock();
+
             currRunnable->runTask(myTask, numTotalTasks);
 
             lock.lock();
