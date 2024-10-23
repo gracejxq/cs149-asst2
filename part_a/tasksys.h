@@ -66,7 +66,7 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         std::mutex mutex_;
         std::atomic<int> numTotalTasks{0};
         IRunnable* currRunnable;
-        void runThread(int thread_num); // helper called by run()
+        void runThread(); // helper called by run()
     public:
         TaskSystemParallelThreadPoolSpinning(int num_threads);
         ~TaskSystemParallelThreadPoolSpinning();
@@ -86,8 +86,20 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
 class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
     private:
         int threads_available; // tracks optimal number of threads
-        bool threads_made; // tracks if threads have alr been spawned by a prev call to run()
-        std::queue<int> run_queue; // tracks future bulk task launches
+        std::vector<std::thread> threads;
+
+        IRunnable* currRunnable;
+
+        std::atomic<int> curTask{0};
+        std::atomic<int> numTotalTasks{0};
+        std::atomic<int> doneTasks{0};
+        std::atomic<bool> endThreadPool{false};
+
+        std::mutex mutex_;
+        std::condition_variable taskAvailable; // cv to start running threads after sleeping
+        std::condition_variable tasksDone; // cv to return from run after all threads sleeping
+        void runThread(int id); // helper called by run()
+
     public:
         TaskSystemParallelThreadPoolSleeping(int num_threads);
         ~TaskSystemParallelThreadPoolSleeping();

@@ -105,7 +105,7 @@ TaskSystemParallelThreadPoolSpinning::TaskSystemParallelThreadPoolSpinning(int n
     endThreadPool = false;
     threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS);
     for (int i = 0; i < threads_available; i++) {
-        threads.emplace_back(std::thread(&TaskSystemParallelThreadPoolSpinning::runThread, this, i));
+        threads.emplace_back(std::thread(&TaskSystemParallelThreadPoolSpinning::runThread, this));
     }
 }
 
@@ -116,7 +116,7 @@ TaskSystemParallelThreadPoolSpinning::~TaskSystemParallelThreadPoolSpinning() {
     }
 }
 
-void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
+void TaskSystemParallelThreadPoolSpinning::runThread() {
     while (!endThreadPool) {
         std::unique_lock<std::mutex> runningThreadsLock(mutex_);
         if (curTask < numTotalTasks) {
@@ -129,10 +129,18 @@ void TaskSystemParallelThreadPoolSpinning::runThread(int thread_num) {
 }
 
 void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_total_tasks) {
-    currRunnable = runnable;
-    curTask = 0;
-    doneTasks = 0;
-    numTotalTasks = num_total_tasks;
+    {   // scoping to make this atomic in case of spurious wakeups
+        std::unique_lock<std::mutex> lock(mutex_);
+        currRunnable = runnable;
+        curTask = 0;
+        doneTasks = 0;
+        numTotalTasks = num_total_tasks;
+        lock.unlock();
+    }
+    // currRunnable = runnable;
+    // curTask = 0;
+    // doneTasks = 0;
+    // numTotalTasks = num_total_tasks;
     while (doneTasks < numTotalTasks) {
         continue;
     }
@@ -160,34 +168,73 @@ const char* TaskSystemParallelThreadPoolSleeping::name() {
 }
 
 TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(int num_threads): ITaskSystem(num_threads) {
-    //
-    // TODO: CS149 student implementations may decide to perform setup
-    // operations (such as thread pool construction) here.
-    // Implementations are free to add new class member variables
-    // (requiring changes to tasksys.h).
-    //
+    endThreadPool = false;
+    curTask = 0;
+    doneTasks = 0;
+    numTotalTasks = 0;
+
+    threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS);
+    for (int i = 0; i < threads_available; i++) {
+        threads.emplace_back(std::thread(&TaskSystemParallelThreadPoolSleeping::runThread, this, i));
+    }
 }
 
 TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
-    //
-    // TODO: CS149 student implementations may decide to perform cleanup
-    // operations (such as thread pool shutdown construction) here.
-    // Implementations are free to add new class member variables
-    // (requiring changes to tasksys.h).
-    //
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        endThreadPool = true;
+    }
+
+    taskAvailable.notify_all(); // wake all sleeping threads and break them
+
+    for (std::thread &t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+}
+
+void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
+    while (true) {
+
+        // wait until (1) can run new task or (2) destructor is called (endThreadPool)
+        std::unique_lock<std::mutex> lock(mutex_);
+        while (!endThreadPool && curTask >= numTotalTasks) { // checks against spurious wakeups
+            taskAvailable.wait(lock);  
+        }
+
+        if (endThreadPool) { // kill thread if destructor
+            break; 
+        } 
+
+        if (curTask < numTotalTasks) { // otherwise run next task
+            int myTask = curTask++;
+            lock.unlock();
+
+            currRunnable->runTask(myTask, numTotalTasks);
+
+            lock.lock();
+
+            // wake main thread to return from run after last task
+            if (++doneTasks == numTotalTasks) {
+                tasksDone.notify_one();
+            }
+        }
+    }
 }
 
 void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_total_tasks) {
+    // make this atomic in case of spurious worker thread wakeups
+    std::unique_lock<std::mutex> lock(mutex_);
+    currRunnable = runnable;
+    curTask = 0;
+    doneTasks = 0;
+    numTotalTasks = num_total_tasks;
 
+    taskAvailable.notify_all();  // wake all threads to start running tasks
 
-    //
-    // TODO: CS149 students will modify the implementation of this
-    // method in Parts A and B.  The implementation provided below runs all
-    // tasks sequentially on the calling thread.
-    //
-
-    for (int i = 0; i < num_total_tasks; i++) {
-        runnable->runTask(i, num_total_tasks);
+    while (doneTasks < numTotalTasks) { // checks against spurious wakeups
+        tasksDone.wait(lock);
     }
 }
 
