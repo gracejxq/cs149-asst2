@@ -225,7 +225,7 @@ void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
 
 void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_total_tasks) {
     // make this atomic in case of spurious worker thread wakeups
-    std::unique_lock<std::mutex> lock(mutex_);
+    // std::unique_lock<std::mutex> lock(mutex_);
     currRunnable = runnable;
     curTask = 0;
     doneTasks = 0;
@@ -233,6 +233,7 @@ void TaskSystemParallelThreadPoolSleeping::run(IRunnable* runnable, int num_tota
 
     taskAvailable.notify_all();  // wake all threads to start running tasks
 
+    std::unique_lock<std::mutex> lock(mutex_);
     while (doneTasks < numTotalTasks) { // checks against spurious wakeups
         tasksDone.wait(lock);
     }
