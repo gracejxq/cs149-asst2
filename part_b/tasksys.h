@@ -114,8 +114,8 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         // USED ONLY BY runAsyncWithDeps()
         std::atomic<TaskID> nextID{1};
         std::unordered_map<TaskID, BulkTaskLaunch*> nonPendingLaunches; // map of all non-finished launches
-        std::queue<BulkTaskLaunch*> readyLaunches; // queue of ready-to-run launches
         std::unordered_map<TaskID, BulkTaskLaunch*> pendingLaunches; // maps running/ready launches
+        std::queue<BulkTaskLaunch*> readyLaunches; // queue of ready-to-run launches
 
         std::set<TaskID> doneLaunches; // set of done launches
         void runAsyncWithDepsThread(int i); // helper called by runAsyncWithDeps()
