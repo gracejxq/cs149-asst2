@@ -99,7 +99,7 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         std::mutex mutex_;
         std::condition_variable taskAvailable; // cv to start running threads after sleeping
         std::condition_variable tasksDone; // cv to return from run after all threads sleeping
-        void runThread(int id); // helper called by run()
+        void runThread(); // helper called by run()
 
     public:
         TaskSystemParallelThreadPoolSleeping(int num_threads);

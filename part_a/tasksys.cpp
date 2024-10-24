@@ -135,12 +135,8 @@ void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_tota
         curTask = 0;
         doneTasks = 0;
         numTotalTasks = num_total_tasks;
-        lock.unlock();
     }
-    // currRunnable = runnable;
-    // curTask = 0;
-    // doneTasks = 0;
-    // numTotalTasks = num_total_tasks;
+    
     while (doneTasks < numTotalTasks) {
         continue;
     }
@@ -175,7 +171,7 @@ TaskSystemParallelThreadPoolSleeping::TaskSystemParallelThreadPoolSleeping(int n
 
     threads_available = std::min(num_threads, MAX_EXECUTION_CONTEXTS);
     for (int i = 0; i < threads_available; i++) {
-        threads.emplace_back(std::thread(&TaskSystemParallelThreadPoolSleeping::runThread, this, i));
+        threads.emplace_back(std::thread(&TaskSystemParallelThreadPoolSleeping::runThread, this));
     }
 }
 
@@ -194,7 +190,7 @@ TaskSystemParallelThreadPoolSleeping::~TaskSystemParallelThreadPoolSleeping() {
     }
 }
 
-void TaskSystemParallelThreadPoolSleeping::runThread(int id) {
+void TaskSystemParallelThreadPoolSleeping::runThread() {
     while (true) {
 
         // wait until (1) can run new task or (2) destructor is called (endThreadPool)
