@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 // const int MAX_EXECUTION_CONTEXTS = 8;  // machine unique: myth
-const int MAX_EXECUTION_CONTEXTS = 1; // machine unique: aws machine
+const int MAX_EXECUTION_CONTEXTS = 16; // machine unique: aws machine
 struct BulkTaskLaunch {
     TaskID id;
     std::vector<TaskID> dependents; // notify all dependents when this finishes
@@ -116,11 +116,10 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         std::unordered_map<TaskID, BulkTaskLaunch*> nonPendingLaunches; // map of all non-finished launches
         std::unordered_map<TaskID, BulkTaskLaunch*> pendingLaunches; // maps running/ready launches
         std::queue<BulkTaskLaunch*> readyLaunches; // queue of ready-to-run launches
-
         std::set<TaskID> doneLaunches; // set of done launches
+
         void runAsyncWithDepsThread(int i); // helper called by runAsyncWithDeps()
         void updateDependents(std::vector<TaskID> dependents); // helper called by runAsyncWithDeps()
-
 
         void printState();
 

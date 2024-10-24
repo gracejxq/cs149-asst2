@@ -257,7 +257,7 @@ void TaskSystemParallelThreadPoolSleeping::runAsyncWithDepsThread(int i) {
                 // update dependents
                 updateDependents(curLaunch->dependents);
 
-                delete curLaunch;
+                // delete curLaunch;
                 tasksDone.notify_all();
             }
         } /*else {
